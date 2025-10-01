@@ -43,4 +43,19 @@ export class ApiClient {
     
     return response.json();
   }
+
+  static async resetSession() {
+    const response = await fetch(`${API_BASE}/session/reset`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }

@@ -46,7 +46,15 @@ export const useGameState = () => {
     }
   }, [gameState.currentCategory]);
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback(async () => {
+    try {
+      // Reset the session to get fresh phrases
+      await ApiClient.resetSession();
+    } catch (error) {
+      console.error('Error resetting session:', error);
+      // Continue even if reset fails
+    }
+    
     setGameState(prev => ({
       ...prev,
       isPlaying: true,

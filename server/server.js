@@ -2,11 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const PhraseService = require('./phraseService');
+const SessionManager = require('./sessionManager');
 
 class Server {
   constructor() {
     this.app = express();
     this.phraseService = new PhraseService();
+    this.sessionManager = new SessionManager();
     this.port = process.env.PORT || 3001;
   }
 
@@ -34,6 +36,9 @@ class Server {
       console.log('Make sure Ollama is running on http://localhost:11434');
     });
 
+    // Start session cleanup
+    this.sessionManager.startCleanup();
+
     // Setup graceful shutdown
     this.setupGracefulShutdown();
 
@@ -50,7 +55,12 @@ class Server {
     this.app.get('/api/phrases/random', async (req, res) => {
       try {
         const category = req.query.category || null;
-        const phrase = await this.phraseService.getRandomPhrase(category);
+        const excludeIds = this.sessionManager.getUsedPhrases(req);
+        const phrase = await this.phraseService.getRandomPhrase(category, excludeIds);
+        
+        // Mark this phrase as used for this session
+        this.sessionManager.markPhraseUsed(req, phrase.id);
+        
         res.json(phrase);
       } catch (error) {
         console.error('Error getting random phrase:', error);
@@ -93,6 +103,20 @@ class Server {
         console.error('Error getting categories:', error);
         res.status(500).json({
           error: 'Failed to get categories',
+          message: error.message
+        });
+      }
+    });
+
+    // Reset used phrases for new game session
+    this.app.post('/api/session/reset', async (req, res) => {
+      try {
+        this.sessionManager.resetSession(req);
+        res.json({ success: true, message: 'Session reset - fresh phrases will be served' });
+      } catch (error) {
+        console.error('Error resetting session:', error);
+        res.status(500).json({
+          error: 'Failed to reset session',
           message: error.message
         });
       }

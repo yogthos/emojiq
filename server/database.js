@@ -32,7 +32,8 @@ class Database {
           difficulty INTEGER DEFAULT 5,
           correct_guesses INTEGER DEFAULT 0,
           total_attempts INTEGER DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(phrase, category)
         )
       `;
 
@@ -48,14 +49,25 @@ class Database {
     });
   }
 
-  async getRandomPhrase(category = null) {
+  async getRandomPhrase(category = null, excludeIds = []) {
     return new Promise((resolve, reject) => {
       let query = 'SELECT * FROM phrases';
       let params = [];
+      let conditions = [];
 
       if (category) {
-        query += ' WHERE category = ?';
-        params = [category];
+        conditions.push('category = ?');
+        params.push(category);
+      }
+
+      if (excludeIds.length > 0) {
+        const placeholders = excludeIds.map(() => '?').join(',');
+        conditions.push(`id NOT IN (${placeholders})`);
+        params.push(...excludeIds);
+      }
+
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
       }
 
       query += ' ORDER BY RANDOM() LIMIT 1';

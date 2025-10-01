@@ -4,24 +4,29 @@
 
 ```mermaid
 flowchart TD
-    A[Start Game] --> B[Request Phrase from Server]
-    B --> C{Check SQLite Cache}
-    C -->|Cache Hit| D[Return Cached Phrase+Emojis]
-    C -->|Cache Miss| E[Call Ollama Qwen3:1.7b]
-    E --> F[Generate Phrase & Emojis]
-    F --> G[Store in SQLite Cache]
-    G --> D
-    D --> H[Scramble Words + Add Decoys]
-    H --> I[Display Emojis & Word Bank]
-    I --> J[User Selects Words]
-    J --> K{Check Answer}
-    K -->|Correct| L[Update Score & Difficulty]
-    K -->|Incorrect| M[Show Hint/Retry]
-    L --> N{Time Remaining?}
-    M --> N
-    N -->|Yes| B
-    N -->|No| O[Game Over]
-    O --> P[Show Final Score]
+    A[Start Game] --> B[Reset Session / Clear Used Phrases]
+    B --> C[Request Phrase from Server]
+    C --> D{Check SQLite Cache}
+    D -->|Cache Hit| E[Filter Used Phrases]
+    D -->|Cache Miss| F[Call Ollama Qwen3:1.7b]
+    E --> G{Any Unused Phrases?}
+    G -->|Yes| H[Return Fresh Phrase+Emojis]
+    G -->|No| F
+    F --> I[Generate Phrase & Emojis]
+    I --> J[Store in SQLite Cache]
+    J --> H
+    H --> K[Track Phrase as Used]
+    K --> L[Scramble Words + Add Decoys]
+    L --> M[Display Emojis & Word Bank]
+    M --> N[User Selects Words]
+    N --> O{Check Answer}
+    O -->|Correct| P[Update Score & Difficulty]
+    O -->|Incorrect| Q[Show Hint/Retry]
+    P --> R{Time Remaining?}
+    Q --> R
+    R -->|Yes| C
+    R -->|No| S[Game Over]
+    S --> T[Show Final Score]
 ```
 
 ## Code Structure
@@ -45,22 +50,25 @@ graph TB
         M --> N[Ollama Client]
         M --> O[SQLite Database]
         P[Difficulty Tracker] --> O
+        Q[Session Manager] --> M
     end
     
     subgraph "Database Schema"
-        O --> Q[phrases table]
-        Q --> R[id: INTEGER PRIMARY KEY]
-        Q --> S[phrase: TEXT]
-        Q --> T[emojis: TEXT]
-        Q --> U[category: TEXT]
-        Q --> V[difficulty: INTEGER]
-        Q --> W[correct_guesses: INTEGER]
-        Q --> X[total_attempts: INTEGER]
-        Q --> Y[created_at: DATETIME]
+        O --> R[phrases table]
+        R --> S[id: INTEGER PRIMARY KEY]
+        R --> T[phrase: TEXT]
+        R --> U[emojis: TEXT]
+        R --> V[category: TEXT]
+        R --> W[difficulty: INTEGER]
+        R --> X[correct_guesses: INTEGER]
+        R --> Y[total_attempts: INTEGER]
+        R --> Z[created_at: DATETIME]
+        R --> AA[UNIQUE phrase, category]
     end
     
     I --> K
     L --> P
+    H --> Q
 ```
 
 ## Component Responsibilities
@@ -84,6 +92,7 @@ graph TB
 - **Ollama Client**: Integration with local Ollama server
 - **SQLite Database**: Persistent phrase caching
 - **Difficulty Tracker**: Updates difficulty based on player performance
+- **Session Manager**: Tracks used phrases per game session
 
 ### Database Schema
 - **phrases table**: Cached phrases with metadata
@@ -99,9 +108,9 @@ graph TB
 ## API Endpoints
 
 ### GET /api/phrases/random
-- **Purpose**: Get a random phrase with emojis
+- **Purpose**: Get a random phrase with emojis (ensures fresh phrases per session)
 - **Query Params**: `category` (optional)
-- **Response**: `{ phrase: string, emojis: string, category: string }`
+- **Response**: `{ id: number, phrase: string, emojis: string, category: string }`
 
 ### POST /api/phrases/guess-result
 - **Purpose**: Update difficulty tracking
@@ -111,6 +120,10 @@ graph TB
 ### GET /api/categories
 - **Purpose**: Get available categories
 - **Response**: `string[]`
+
+### POST /api/session/reset
+- **Purpose**: Reset used phrase tracking for new game session
+- **Response**: `{ success: boolean, message: string }`
 
 ### UI Components
 - EmojiDisplay: Shows emoji puzzle

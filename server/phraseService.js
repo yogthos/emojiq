@@ -15,21 +15,41 @@ class PhraseService {
     }
   }
 
-  async getRandomPhrase(category = null) {
+  async getRandomPhrase(category = null, excludeIds = []) {
     await this.init();
 
-    // First try to get a cached phrase
-    let phrase = await this.db.getRandomPhrase(category);
+    // First try to get a cached phrase that hasn't been used
+    let phrase = await this.db.getRandomPhrase(category, excludeIds);
     
-    // If no cached phrase exists, generate a new one
+    // If no unused cached phrase exists, generate a new one
     if (!phrase) {
-      console.log('No cached phrases found, generating new one...');
-      const newPhrase = await this.ollama.generatePhrase(category || 'movies');
-      phrase = await this.db.insertPhrase(
-        newPhrase.phrase,
-        newPhrase.emojis,
-        newPhrase.category
-      );
+      console.log('No unused cached phrases found, generating new one...');
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          const newPhrase = await this.ollama.generatePhrase(category || 'movies');
+          phrase = await this.db.insertPhrase(
+            newPhrase.phrase,
+            newPhrase.emojis,
+            newPhrase.category
+          );
+          break; // Success, break out of loop
+        } catch (error) {
+          if (error.message.includes('UNIQUE constraint failed')) {
+            // Duplicate phrase, try again
+            attempts++;
+            console.log(`Duplicate phrase detected, attempt ${attempts}/${maxAttempts}...`);
+            if (attempts >= maxAttempts) {
+              throw new Error('Failed to generate unique phrase after multiple attempts');
+            }
+          } else {
+            // Other error, rethrow
+            throw error;
+          }
+        }
+      }
     }
 
     return {
