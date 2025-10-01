@@ -31,13 +31,13 @@ Download the installer from [ollama.ai](https://ollama.ai) and run it.
 
 ### 2. Pull Required Model
 
-The game uses the `qwen2.5:1.7b` model for phrase generation. Pull the model using:
+The game uses the `Qwen3:1.7b` model for phrase generation. Pull the model using:
 
 ```bash
-ollama pull qwen2.5:1.7b
+ollama pull Qwen3:1.7b
 ```
 
-> **Note**: You can use other models by modifying the `server/ollamaClient.js` file, but `qwen2.5:1.7b` is recommended for optimal performance and quality.
+> **Note**: You can use other models by modifying the `server/ollamaClient.js` file, but `Qwen3:1.7b` is recommended for optimal performance and quality.
 
 ### 3. Verify Ollama Setup
 

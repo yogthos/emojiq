@@ -8,7 +8,7 @@ flowchart TD
     B --> C[Request Phrase from Server]
     C --> D{Check SQLite Cache}
     D -->|Cache Hit| E[Filter Used Phrases]
-    D -->|Cache Miss| F[Call Ollama Qwen2.5:1.7b]
+    D -->|Cache Miss| F[Call Ollama Qwen3:1.7b]
     E --> G{Any Unused Phrases?}
     G -->|Yes| H[Return Fresh Phrase+Emojis]
     G -->|No| F
@@ -84,7 +84,7 @@ graph TB
 - **Server Class**: Main server setup with graceful shutdown
 - **Phrase Service**: Core business logic for phrase management
 - **Session Manager**: Cookie-based session tracking for phrase uniqueness
-- **Ollama Client**: Integration with local Ollama server using qwen2.5:1.7b
+- **Ollama Client**: Integration with local Ollama server using Qwen3:1.7b
 - **SQLite Database**: Persistent phrase caching with automatic cleanup
 - **Background Generation**: Automatic phrase population when cache is low
 - **Database**: SQLite wrapper with phrase operations

@@ -29,7 +29,7 @@ ollama serve
 ### Pulling the Model
 
 ```bash
-ollama pull qwen2.5:1.7b
+ollama pull Qwen3:1.7b
 ```
 
 ## Running the Application
@@ -107,7 +107,7 @@ When a phrase is requested:
 
 Default categories:
 - `movies` - Movie titles and phrases
-- `idioms` - Common idioms and sayings  
+- `idioms` - Common idioms and sayings
 - `songs` - Song titles and lyrics
 
 ## Development
