@@ -5,7 +5,7 @@ import './style.css';
 const Header = () => (
 	<header class="header">
 		<a href="/" class="logo">
-			<img src="../../assets/preact-logo-inverse.svg" alt="Preact Logo" height="32" width="32" />
+
 			<h1>Emoji Word Game</h1>
 		</a>
 		<nav>
