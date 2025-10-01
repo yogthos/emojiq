@@ -150,7 +150,7 @@ function makeRequest(path, method, user, body = null) {
 // Run the test if this file is executed directly
 if (require.main === module) {
   // Start the server first, then run the test
-  const Server = require('./server');
+  const Server = require('../../server/server');
   const server = new Server();
   
   server.start().then(() => {

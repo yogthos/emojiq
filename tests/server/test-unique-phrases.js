@@ -1,4 +1,4 @@
-const Server = require('./server');
+const Server = require('../../server/server');
 
 async function testUniquePhrases() {
   console.log('Testing unique phrase functionality...\n');

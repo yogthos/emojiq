@@ -1,4 +1,4 @@
-const Server = require('./server');
+const Server = require('../../server/server');
 
 async function testMultiSessionUnique() {
   console.log('Testing unique phrases across multiple sessions...\n');
