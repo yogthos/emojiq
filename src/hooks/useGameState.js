@@ -22,10 +22,10 @@ export const useGameState = () => {
   const startNewRound = useCallback(async () => {
     try {
       setGameState(prev => ({ ...prev, isLoading: true }));
-      
+
       const phraseData = await ApiClient.getRandomPhrase(gameState.currentCategory);
       const scrambledWords = WordScrambler.scrambleWords(phraseData.phrase);
-      
+
       setGameState(prev => ({
         ...prev,
         currentSentence: phraseData.phrase,
@@ -38,10 +38,10 @@ export const useGameState = () => {
       }));
     } catch (error) {
       console.error('Error starting new round:', error);
-      setGameState(prev => ({ 
-        ...prev, 
+      setGameState(prev => ({
+        ...prev,
         message: 'Failed to load phrase. Please try again.',
-        isLoading: false 
+        isLoading: false
       }));
     }
   }, [gameState.currentCategory]);
@@ -54,7 +54,7 @@ export const useGameState = () => {
       console.error('Error resetting session:', error);
       // Continue even if reset fails
     }
-    
+
     setGameState(prev => ({
       ...prev,
       isPlaying: true,
@@ -107,10 +107,14 @@ export const useGameState = () => {
       const wordBonus = gameState.currentSentence.split(' ').length * 10;
       const roundScore = 50 + timeBonus + wordBonus;
 
+      // Add time extension for successful guess (5-10 seconds based on phrase length)
+      const timeExtension = Math.min(10, Math.max(5, gameState.currentSentence.split(' ').length * 2));
+
       setGameState(prev => ({
         ...prev,
         score: prev.score + roundScore,
-        message: `Correct! +${roundScore} points`
+        timeLeft: Math.min(120, prev.timeLeft + timeExtension), // Cap at 2 minutes
+        message: `Correct! +${roundScore} points (+${timeExtension}s time bonus)`
       }));
 
       setTimeout(() => {

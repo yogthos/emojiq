@@ -15,6 +15,10 @@
     "test:server": "node server/test-full-flow.js",
     "test:unique": "node server/test-unique-phrases.js",
     "test:multi-session": "node server/test-multi-session-unique.js",
+    "test:generation": "node server/test-phrase-generation.js",
+    "test:empty-cache": "node server/test-empty-cache-generation.js",
+    "test:direct-gen": "node server/test-direct-generation.js",
+    "test:timer": "node server/test-timer-extension.js",
     "server": "node server/server.js",
     "start": "npm run build && npm run server"
   },

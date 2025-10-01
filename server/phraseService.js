@@ -6,6 +6,9 @@ class PhraseService {
     this.db = new Database();
     this.ollama = new OllamaClient();
     this.isInitialized = false;
+    this.backgroundGenerationRunning = false;
+    this.minPhraseThreshold = 20; // Minimum phrases per category to maintain
+    this.maxBackgroundGeneration = 10; // Max phrases to generate in background
   }
 
   async init() {
@@ -17,6 +20,9 @@ class PhraseService {
 
   async getRandomPhrase(category = null, excludeIds = []) {
     await this.init();
+
+    // Trigger background generation if we're running low on phrases
+    this.ensurePhraseAvailability(category).catch(console.error);
 
     // First try to get a cached phrase that hasn't been used
     let phrase = await this.db.getRandomPhrase(category, excludeIds);
@@ -104,6 +110,103 @@ class PhraseService {
     }
   }
 
+  async getPhraseCountsByCategory() {
+    await this.init();
+    
+    return new Promise((resolve, reject) => {
+      const query = 'SELECT category, COUNT(*) as count FROM phrases GROUP BY category';
+      
+      this.db.db.all(query, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          const counts = {};
+          rows.forEach(row => {
+            counts[row.category] = row.count;
+          });
+          resolve(counts);
+        }
+      });
+    });
+  }
+
+  async needsMorePhrases(category = null) {
+    const counts = await this.getPhraseCountsByCategory();
+    
+    if (category) {
+      const categoryCount = counts[category] || 0;
+      return categoryCount < this.minPhraseThreshold;
+    } else {
+      // Check all categories
+      const categories = await this.getCategories();
+      return categories.some(cat => {
+        const categoryCount = counts[cat] || 0;
+        return categoryCount < this.minPhraseThreshold;
+      });
+    }
+  }
+
+  async generatePhrasesInBackground(category = null) {
+    if (this.backgroundGenerationRunning) {
+      return; // Already running
+    }
+
+    this.backgroundGenerationRunning = true;
+    console.log(`Starting background phrase generation for category: ${category || 'all'}`);
+
+    try {
+      const categories = category ? [category] : await this.getCategories();
+      
+      for (const cat of categories) {
+        const counts = await this.getPhraseCountsByCategory();
+        const currentCount = counts[cat] || 0;
+        
+        if (currentCount < this.minPhraseThreshold) {
+          const needed = Math.min(
+            this.minPhraseThreshold - currentCount,
+            this.maxBackgroundGeneration
+          );
+          
+          console.log(`Generating ${needed} phrases for category: ${cat}`);
+          
+          for (let i = 0; i < needed; i++) {
+            try {
+              const newPhrase = await this.ollama.generatePhrase(cat);
+              await this.db.insertPhrase(
+                newPhrase.phrase,
+                newPhrase.emojis,
+                newPhrase.category
+              );
+              console.log(`Generated phrase: "${newPhrase.phrase}" for ${cat}`);
+            } catch (error) {
+              if (error.message.includes('UNIQUE constraint failed')) {
+                console.log(`Duplicate phrase detected during background generation, skipping...`);
+              } else {
+                console.error('Error generating phrase in background:', error);
+              }
+            }
+            
+            // Small delay to avoid overwhelming the LLM
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in background phrase generation:', error);
+    } finally {
+      this.backgroundGenerationRunning = false;
+      console.log('Background phrase generation completed');
+    }
+  }
+
+  async ensurePhraseAvailability(category = null) {
+    const needsMore = await this.needsMorePhrases(category);
+    if (needsMore) {
+      // Start background generation but don't wait for it
+      this.generatePhrasesInBackground(category).catch(console.error);
+    }
+  }
+
   async seedInitialPhrases() {
     await this.init();
 
@@ -132,6 +235,9 @@ class PhraseService {
     }
 
     console.log('Initial phrases seeded');
+    
+    // Start background generation to ensure we have enough phrases
+    this.ensurePhraseAvailability().catch(console.error);
   }
 
   async close() {
