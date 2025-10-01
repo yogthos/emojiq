@@ -13,6 +13,8 @@
     "test": "jest",
     "test:ollama": "node server/test-ollama.js",
     "test:server": "node server/test-full-flow.js",
+    "test:unique": "node server/test-unique-phrases.js",
+    "test:multi-session": "node server/test-multi-session-unique.js",
     "server": "node server/server.js",
     "start": "npm run build && npm run server"
   },
@@ -34,6 +36,7 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "preact": "^10.11.3",

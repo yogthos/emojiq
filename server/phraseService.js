@@ -20,36 +20,50 @@ class PhraseService {
 
     // First try to get a cached phrase that hasn't been used
     let phrase = await this.db.getRandomPhrase(category, excludeIds);
-    
-    // If no unused cached phrase exists, generate a new one
+
+    // If no unused cached phrase exists, try generating new ones
     if (!phrase) {
-      console.log('No unused cached phrases found, generating new one...');
-      let attempts = 0;
-      const maxAttempts = 3;
-      
-      while (attempts < maxAttempts) {
+      console.log(`No unused cached phrases found for category: ${category || 'all'}, generating new ones...`);
+
+      // Try to generate multiple phrases to increase chances of uniqueness
+      const generateAttempts = 5;
+      let generatedPhrases = [];
+
+      for (let i = 0; i < generateAttempts; i++) {
         try {
           const newPhrase = await this.ollama.generatePhrase(category || 'movies');
-          phrase = await this.db.insertPhrase(
+          const insertedPhrase = await this.db.insertPhrase(
             newPhrase.phrase,
             newPhrase.emojis,
             newPhrase.category
           );
-          break; // Success, break out of loop
+          generatedPhrases.push(insertedPhrase);
         } catch (error) {
           if (error.message.includes('UNIQUE constraint failed')) {
-            // Duplicate phrase, try again
-            attempts++;
-            console.log(`Duplicate phrase detected, attempt ${attempts}/${maxAttempts}...`);
-            if (attempts >= maxAttempts) {
-              throw new Error('Failed to generate unique phrase after multiple attempts');
-            }
+            console.log(`Duplicate phrase detected during generation, skipping...`);
+            continue;
           } else {
-            // Other error, rethrow
-            throw error;
+            console.error('Error generating phrase:', error);
+            continue;
           }
         }
       }
+
+      // Now try to get a phrase from the newly generated ones that's not in excludeIds
+      if (generatedPhrases.length > 0) {
+        const availablePhrases = generatedPhrases.filter(p => !excludeIds.includes(p.id));
+        if (availablePhrases.length > 0) {
+          phrase = availablePhrases[0];
+        } else {
+          // All generated phrases are excluded, try one more time with a fresh query
+          phrase = await this.db.getRandomPhrase(category, excludeIds);
+        }
+      }
+    }
+
+    // If still no phrase found, return null (will be handled by the API endpoint)
+    if (!phrase) {
+      return null;
     }
 
     return {
@@ -62,7 +76,7 @@ class PhraseService {
 
   async recordGuessResult(phraseId, wasCorrect) {
     await this.init();
-    
+
     try {
       await this.db.updateGuessStats(phraseId, wasCorrect);
       return { success: true };
@@ -74,15 +88,15 @@ class PhraseService {
 
   async getCategories() {
     await this.init();
-    
+
     try {
       const categories = await this.db.getCategories();
-      
+
       // If no categories exist in DB, return default ones
       if (categories.length === 0) {
         return ['movies', 'idioms', 'songs'];
       }
-      
+
       return categories;
     } catch (error) {
       console.error('Error getting categories:', error);
@@ -92,7 +106,7 @@ class PhraseService {
 
   async seedInitialPhrases() {
     await this.init();
-    
+
     const initialPhrases = [
       { phrase: 'The lion is king', emojis: '🦁👑', category: 'movies' },
       { phrase: 'A girl fights competition', emojis: '👧🏼🔥🎯', category: 'movies' },

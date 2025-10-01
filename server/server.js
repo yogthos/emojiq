@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 const PhraseService = require('./phraseService');
 const SessionManager = require('./sessionManager');
 
@@ -17,6 +18,7 @@ class Server {
     // Middleware
     this.app.use(cors());
     this.app.use(express.json());
+    this.app.use(cookieParser());
 
     // Serve static files from dist directory (for production)
     this.app.use(express.static(path.join(__dirname, '../dist')));
@@ -56,11 +58,29 @@ class Server {
       try {
         const category = req.query.category || null;
         const excludeIds = this.sessionManager.getUsedPhrases(req);
+
+        // Set session cookie if not present
+        if (!req.headers.cookie || !req.headers.cookie.includes('sessionId=')) {
+          const sessionId = this.sessionManager.getSessionId(req);
+          res.cookie('sessionId', sessionId, {
+            httpOnly: true,
+            secure: false, // Set to true in production with HTTPS
+            maxAge: 30 * 60 * 1000 // 30 minutes
+          });
+        }
+
         const phrase = await this.phraseService.getRandomPhrase(category, excludeIds);
-        
+
+        if (!phrase) {
+          return res.status(503).json({
+            error: 'No available phrases',
+            message: 'All phrases in this category have been used recently. Please try a different category or wait a moment.'
+          });
+        }
+
         // Mark this phrase as used for this session
         this.sessionManager.markPhraseUsed(req, phrase.id);
-        
+
         res.json(phrase);
       } catch (error) {
         console.error('Error getting random phrase:', error);
@@ -131,17 +151,17 @@ class Server {
   setupGracefulShutdown() {
     const shutdown = async (signal) => {
       console.log(`\nReceived ${signal}, shutting down gracefully...`);
-      
+
       // Close HTTP server
       if (this.server) {
         this.server.close(() => {
           console.log('HTTP server closed');
         });
       }
-      
+
       // Close database connections
       await this.stop();
-      
+
       console.log('Server shutdown complete');
       process.exit(0);
     };
