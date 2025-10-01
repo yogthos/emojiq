@@ -1,4 +1,4 @@
-const PhraseService = require('./phraseService');
+const PhraseService = require('../../server/phraseService');
 
 async function testFreshPhrases() {
   console.log('🧪 Testing Fresh Phrase Functionality\n');

@@ -1,5 +1,5 @@
 const Server = require('../../server/server');
-const Database = require('./database');
+const Database = require('../../server/database');
 
 async function testEmptyCacheGeneration() {
   console.log('Testing phrase generation with empty cache...\n');

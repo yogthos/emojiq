@@ -32,38 +32,56 @@ async function testMultiSessionUnique() {
     console.log(`Session ${sessionIndex + 1} starting...`);
 
     for (let i = 0; i < requestsPerSession; i++) {
-      try {
-        const response = await fetch(`${baseUrl}/api/phrases/random`, {
-          headers: {
-            'Cookie': session.cookie
-          }
-        });
-        const data = await response.json();
+      let attempts = 0;
+      const maxAttempts = 3;
+      let success = false;
 
-        if (response.ok) {
-          const phraseId = data.id;
-          console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Phrase ID ${phraseId} - "${data.phrase}"`);
+      while (attempts < maxAttempts && !success) {
+        try {
+          const response = await fetch(`${baseUrl}/api/phrases/random`, {
+            headers: {
+              'Cookie': session.cookie
+            }
+          });
+          const data = await response.json();
 
-          // Check for duplicates within this session
-          if (session.usedPhrases.has(phraseId)) {
-            duplicateCount++;
-            console.log(`    ❌ DUPLICATE within session!`);
+          if (response.ok) {
+            const phraseId = data.id;
+            console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Phrase ID ${phraseId} - "${data.phrase}"`);
+
+            // Check for duplicates within this session
+            if (session.usedPhrases.has(phraseId)) {
+              duplicateCount++;
+              console.log(`    ❌ DUPLICATE within session!`);
+            } else {
+              session.usedPhrases.add(phraseId);
+            }
+
+            // Check for duplicates across all sessions
+            if (allUsedPhrases.has(phraseId)) {
+              duplicateCount++;
+              console.log(`    ❌ DUPLICATE across sessions!`);
+            } else {
+              allUsedPhrases.add(phraseId);
+            }
+            success = true;
+          } else if (response.status === 409) {
+            // Phrase conflict - retry
+            attempts++;
+            console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Conflict (attempt ${attempts}/${maxAttempts}) - retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 100));
           } else {
-            session.usedPhrases.add(phraseId);
+            console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Error ${response.status} - ${data.message || data.error}`);
+            success = true; // Don't retry on other errors
           }
-
-          // Check for duplicates across all sessions
-          if (allUsedPhrases.has(phraseId)) {
-            duplicateCount++;
-            console.log(`    ❌ DUPLICATE across sessions!`);
-          } else {
-            allUsedPhrases.add(phraseId);
-          }
-        } else {
-          console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Error ${response.status} - ${data.message || data.error}`);
+        } catch (error) {
+          console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Network error - ${error.message}`);
+          success = true; // Don't retry on network errors
         }
-      } catch (error) {
-        console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Network error - ${error.message}`);
+      }
+
+      if (!success) {
+        console.log(`  Session ${sessionIndex + 1}, Request ${i + 1}: Failed after ${maxAttempts} attempts`);
       }
 
       // Small delay between requests

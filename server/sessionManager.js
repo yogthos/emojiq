@@ -70,6 +70,19 @@ class SessionManager {
     this.globalPhraseTimestamps.set(phraseId, Date.now());
   }
 
+  // Atomic operation: reserve a phrase ID to prevent race conditions
+  reservePhraseId(phraseId) {
+    // Check if phrase is already reserved globally
+    if (this.globalUsedPhrases.has(phraseId)) {
+      return false; // Already used
+    }
+
+    // Reserve it immediately
+    this.globalUsedPhrases.add(phraseId);
+    this.globalPhraseTimestamps.set(phraseId, Date.now());
+    return true; // Successfully reserved
+  }
+
   // Reset used phrases for session
   resetSession(req) {
     const sessionId = this.getSessionId(req);

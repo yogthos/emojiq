@@ -1,4 +1,4 @@
-const PhraseService = require('./phraseService');
+const PhraseService = require('../../server/phraseService');
 
 async function testFullFlow() {
   console.log('🧪 Testing Full Server Flow (Ollama + Database)\n');

@@ -1,5 +1,5 @@
-const PhraseService = require('./phraseService');
-const Database = require('./database');
+const PhraseService = require('../../server/phraseService');
+const Database = require('../../server/database');
 
 async function testDirectGeneration() {
   console.log('Testing phrase generation directly...\n');

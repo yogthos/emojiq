@@ -1,6 +1,2 @@
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-preact-pure';
-
-configure({
-	adapter: new Adapter(),
-});
+// Setup file for Jest tests
+// This file is run before each test file

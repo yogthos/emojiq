@@ -1,4 +1,4 @@
-const PhraseService = require('./phraseService');
+const PhraseService = require('../../server/phraseService');
 
 async function testRepeatPrevention() {
   console.log('🧪 Testing Repeat Phrase Prevention\n');

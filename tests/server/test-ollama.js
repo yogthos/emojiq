@@ -1,4 +1,4 @@
-const OllamaClient = require('./ollamaClient');
+const OllamaClient = require('../../server/ollamaClient');
 
 async function testOllamaIntegration() {
   console.log('🧪 Testing Ollama Integration with Qwen3:1.7b\n');

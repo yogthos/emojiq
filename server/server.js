@@ -78,6 +78,16 @@ class Server {
           });
         }
 
+        // Atomically reserve this phrase to prevent race conditions
+        const reserved = this.sessionManager.reservePhraseId(phrase.id);
+        if (!reserved) {
+          // Phrase was already reserved by another request, try again
+          return res.status(409).json({
+            error: 'Phrase conflict',
+            message: 'This phrase was just used by another session. Please try again.'
+          });
+        }
+
         // Mark this phrase as used for this session
         this.sessionManager.markPhraseUsed(req, phrase.id);
 

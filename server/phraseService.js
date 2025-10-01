@@ -105,6 +105,10 @@ class PhraseService {
 
       return categories;
     } catch (error) {
+      if (error.message.includes('Database is closed') || error.code === 'SQLITE_MISUSE') {
+        console.log('Database closed, returning default categories');
+        return ['movies', 'idioms', 'songs'];
+      }
       console.error('Error getting categories:', error);
       return ['movies', 'idioms', 'songs'];
     }
@@ -155,9 +159,21 @@ class PhraseService {
     console.log(`Starting background phrase generation for category: ${category || 'all'}`);
 
     try {
+      // Check if database is still initialized
+      if (!this.isInitialized) {
+        console.log('Database not initialized, stopping background generation');
+        return;
+      }
+      
       const categories = category ? [category] : await this.getCategories();
       
       for (const cat of categories) {
+        // Check if we should stop before each category
+        if (!this.backgroundGenerationRunning) {
+          console.log('Background generation stopped');
+          return;
+        }
+        
         const counts = await this.getPhraseCountsByCategory();
         const currentCount = counts[cat] || 0;
         
@@ -170,6 +186,12 @@ class PhraseService {
           console.log(`Generating ${needed} phrases for category: ${cat}`);
           
           for (let i = 0; i < needed; i++) {
+            // Check if we should stop before each phrase generation
+            if (!this.backgroundGenerationRunning) {
+              console.log('Background generation stopped');
+              return;
+            }
+            
             try {
               const newPhrase = await this.ollama.generatePhrase(cat);
               await this.db.insertPhrase(
@@ -181,6 +203,9 @@ class PhraseService {
             } catch (error) {
               if (error.message.includes('UNIQUE constraint failed')) {
                 console.log(`Duplicate phrase detected during background generation, skipping...`);
+              } else if (error.message.includes('Database is closed') || error.code === 'SQLITE_MISUSE') {
+                console.log('Database closed, stopping background generation');
+                return;
               } else {
                 console.error('Error generating phrase in background:', error);
               }
@@ -242,6 +267,8 @@ class PhraseService {
 
   async close() {
     if (this.isInitialized) {
+      // Stop any background generation
+      this.backgroundGenerationRunning = false;
       await this.db.close();
       this.isInitialized = false;
     }
