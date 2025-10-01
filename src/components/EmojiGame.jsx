@@ -1,6 +1,5 @@
 import { h } from 'preact';
 import { useGameState } from '../hooks/useGameState';
-import { LLMService } from '../services/llmService';
 import './emoji-game.css';
 
 const EmojiGame = () => {
@@ -13,7 +12,7 @@ const EmojiGame = () => {
     setCategory
   } = useGameState();
 
-  const categories = LLMService.getAvailableCategories();
+  const categories = gameState.categories;
 
   return (
     <div class="emoji-game">
@@ -63,7 +62,9 @@ const EmojiGame = () => {
             <>
               <div class="emoji-display">
                 <h3>What does this mean?</h3>
-                <div class="emojis">{gameState.currentEmojis}</div>
+                <div class="emojis">
+                  {gameState.isLoading ? 'Loading...' : gameState.currentEmojis}
+                </div>
               </div>
 
               <div class="selected-words">
@@ -100,9 +101,9 @@ const EmojiGame = () => {
                 <button 
                   class="submit-button" 
                   onClick={submitAnswer}
-                  disabled={gameState.selectedWords.length === 0}
+                  disabled={gameState.selectedWords.length === 0 || gameState.isLoading}
                 >
-                  Submit Answer
+                  {gameState.isLoading ? 'Loading...' : 'Submit Answer'}
                 </button>
               </div>
 

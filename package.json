@@ -4,11 +4,17 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run server\" \"vite\"",
+    "dev:frontend": "vite",
+    "dev:backend": "node server/server.js",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "test": "jest"
+    "test": "jest",
+    "test:ollama": "node server/test-ollama.js",
+    "test:server": "node server/test-full-flow.js",
+    "server": "node server/server.js",
+    "start": "npm run build && npm run server"
   },
   "eslintConfig": {
     "extends": "preact",
@@ -18,6 +24,7 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",
+    "concurrently": "^9.2.1",
     "enzyme": "^3.11.0",
     "enzyme-adapter-preact-pure": "^4.0.0",
     "eslint": "^8.30.0",
@@ -27,9 +34,12 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "preact": "^10.11.3",
     "preact-render-to-string": "^5.2.6",
-    "preact-router": "^3.2.1"
+    "preact-router": "^3.2.1",
+    "sqlite3": "^5.1.7"
   },
   "jest": {
     "preset": "jest-preset-preact",

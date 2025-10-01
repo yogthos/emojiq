@@ -4,85 +4,113 @@
 
 ```mermaid
 flowchart TD
-    A[Start Game] --> B[Generate Sentence via LLM]
-    B --> C[Convert Sentence to Emojis]
-    C --> D[Scramble Words + Add Decoys]
-    D --> E[Display Emojis & Word Bank]
-    E --> F[User Selects Words]
-    F --> G{Check Answer}
-    G -->|Correct| H[Update Score]
-    G -->|Incorrect| I[Show Hint/Retry]
-    H --> J{Time Remaining?}
-    I --> J
-    J -->|Yes| B
-    J -->|No| K[Game Over]
-    K --> L[Show Final Score]
+    A[Start Game] --> B[Request Phrase from Server]
+    B --> C{Check SQLite Cache}
+    C -->|Cache Hit| D[Return Cached Phrase+Emojis]
+    C -->|Cache Miss| E[Call Ollama Qwen3:1.7b]
+    E --> F[Generate Phrase & Emojis]
+    F --> G[Store in SQLite Cache]
+    G --> D
+    D --> H[Scramble Words + Add Decoys]
+    H --> I[Display Emojis & Word Bank]
+    I --> J[User Selects Words]
+    J --> K{Check Answer}
+    K -->|Correct| L[Update Score & Difficulty]
+    K -->|Incorrect| M[Show Hint/Retry]
+    L --> N{Time Remaining?}
+    M --> N
+    N -->|Yes| B
+    N -->|No| O[Game Over]
+    O --> P[Show Final Score]
 ```
 
 ## Code Structure
 
 ```mermaid
 graph TB
-    subgraph "Core Game Logic"
-        A[GameManager] --> B[LLMService]
-        A --> C[EmojiConverter]
-        A --> D[WordScrambler]
-        A --> E[Timer]
-        A --> F[ScoreManager]
+    subgraph "Frontend (Preact)"
+        A[App] --> B[GameBoard]
+        B --> C[EmojiDisplay]
+        B --> D[WordBank]
+        B --> E[SelectedWords]
+        B --> F[TimerDisplay]
+        B --> G[ScoreDisplay]
+        H[GameState Hook] --> I[API Client]
     end
     
-    subgraph "UI Components"
-        G[App] --> H[GameBoard]
-        H --> I[EmojiDisplay]
-        H --> J[WordBank]
-        H --> K[SelectedWords]
-        H --> L[TimerDisplay]
-        H --> M[ScoreDisplay]
+    subgraph "Backend Server"
+        J[Express Server] --> K[Phrase Routes]
+        K --> L[Phrase Controller]
+        L --> M[Phrase Service]
+        M --> N[Ollama Client]
+        M --> O[SQLite Database]
+        P[Difficulty Tracker] --> O
     end
     
-    subgraph "State Management"
-        N[GameState] --> O[CurrentSentence]
-        N --> P[CurrentEmojis]
-        N --> Q[AvailableWords]
-        N --> R[SelectedWords]
-        N --> S[TimeLeft]
-        N --> T[Score]
+    subgraph "Database Schema"
+        O --> Q[phrases table]
+        Q --> R[id: INTEGER PRIMARY KEY]
+        Q --> S[phrase: TEXT]
+        Q --> T[emojis: TEXT]
+        Q --> U[category: TEXT]
+        Q --> V[difficulty: INTEGER]
+        Q --> W[correct_guesses: INTEGER]
+        Q --> X[total_attempts: INTEGER]
+        Q --> Y[created_at: DATETIME]
     end
     
-    B --> O
-    C --> P
-    D --> Q
-    E --> S
-    F --> T
+    I --> K
+    L --> P
 ```
 
 ## Component Responsibilities
 
-### GameManager
-- Orchestrates game flow
-- Manages game state transitions
-- Coordinates between services
+### Frontend Components
+- **App**: Main application router
+- **GameBoard**: Game interface container
+- **EmojiDisplay**: Shows emoji puzzle
+- **WordBank**: Displays available words
+- **SelectedWords**: Shows user's current selection
+- **TimerDisplay**: Shows remaining time
+- **ScoreDisplay**: Shows current score
+- **GameState Hook**: Manages game state and API calls
+- **API Client**: Communicates with backend server
 
-### LLMService
-- Generates sentences based on categories
-- Converts sentences to emoji representations
+### Backend Components
+- **Express Server**: HTTP server setup
+- **Phrase Routes**: API endpoint definitions
+- **Phrase Controller**: Request/response handling
+- **Phrase Service**: Business logic for phrase generation
+- **Ollama Client**: Integration with local Ollama server
+- **SQLite Database**: Persistent phrase caching
+- **Difficulty Tracker**: Updates difficulty based on player performance
 
-### EmojiConverter
-- Handles emoji mapping logic
-- Validates emoji representations
+### Database Schema
+- **phrases table**: Cached phrases with metadata
+  - `id`: Primary key
+  - `phrase`: The original sentence
+  - `emojis`: Emoji representation
+  - `category`: Phrase category (movies, idioms, songs)
+  - `difficulty`: Calculated difficulty (1-10)
+  - `correct_guesses`: Number of successful guesses
+  - `total_attempts`: Total number of attempts
+  - `created_at`: Timestamp of creation
 
-### WordScrambler
-- Breaks sentences into words
-- Adds decoy words
-- Randomizes word order
+## API Endpoints
 
-### Timer
-- Manages countdown
-- Handles time-based events
+### GET /api/phrases/random
+- **Purpose**: Get a random phrase with emojis
+- **Query Params**: `category` (optional)
+- **Response**: `{ phrase: string, emojis: string, category: string }`
 
-### ScoreManager
-- Tracks correct answers
-- Calculates score based on time/accuracy
+### POST /api/phrases/guess-result
+- **Purpose**: Update difficulty tracking
+- **Body**: `{ phraseId: number, wasCorrect: boolean }`
+- **Response**: `{ success: boolean }`
+
+### GET /api/categories
+- **Purpose**: Get available categories
+- **Response**: `string[]`
 
 ### UI Components
 - EmojiDisplay: Shows emoji puzzle
