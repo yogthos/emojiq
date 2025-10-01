@@ -1,0 +1,41 @@
+{
+  "private": true,
+  "name": "wordgames",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "test": "jest"
+  },
+  "eslintConfig": {
+    "extends": "preact",
+    "ignorePatterns": [
+      "build/"
+    ]
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "enzyme": "^3.11.0",
+    "enzyme-adapter-preact-pure": "^4.0.0",
+    "eslint": "^8.30.0",
+    "eslint-config-preact": "^1.3.0",
+    "jest": "^27.0.0",
+    "jest-preset-preact": "^4.0.5",
+    "vite": "^7.1.7"
+  },
+  "dependencies": {
+    "preact": "^10.11.3",
+    "preact-render-to-string": "^5.2.6",
+    "preact-router": "^3.2.1"
+  },
+  "jest": {
+    "preset": "jest-preset-preact",
+    "setupFiles": [
+      "<rootDir>/tests/__mocks__/browserMocks.js",
+      "<rootDir>/tests/__mocks__/setupTests.js"
+    ]
+  }
+}
