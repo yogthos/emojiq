@@ -6,31 +6,59 @@ async function checkPhrases() {
   try {
     await db.init();
     
-    // Get all phrases
-    const phrases = await new Promise((resolve, reject) => {
-      db.db.all('SELECT * FROM phrases ORDER BY category, id', (err, rows) => {
+    // Get category counts first to avoid loading all data at once
+    const categoryCounts = await new Promise((resolve, reject) => {
+      db.db.all('SELECT category, COUNT(*) as count FROM phrases GROUP BY category ORDER BY category', (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
       });
     });
     
-    console.log(`Total phrases in database: ${phrases.length}`);
-    console.log('\nPhrases by category:');
+    console.log('Phrases by category:');
     
-    const byCategory = {};
-    phrases.forEach(phrase => {
-      if (!byCategory[phrase.category]) {
-        byCategory[phrase.category] = [];
+    // Process each category separately to avoid memory issues
+    for (const categoryRow of categoryCounts) {
+      const category = categoryRow.category;
+      const count = categoryRow.count;
+      
+      console.log(`\n${category}: ${count} phrases`);
+      
+      // Use pagination for large categories
+      const pageSize = 50;
+      let offset = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const phrases = await new Promise((resolve, reject) => {
+          const query = 'SELECT id, phrase, emojis FROM phrases WHERE category = ? ORDER BY id LIMIT ? OFFSET ?';
+          db.db.all(query, [category, pageSize, offset], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+          });
+        });
+        
+        if (phrases.length === 0) {
+          hasMore = false;
+          break;
+        }
+        
+        // Display phrases for this page
+        for (const phrase of phrases) {
+          console.log(`  ID ${phrase.id}: "${phrase.phrase}" -> ${phrase.emojis}`);
+        }
+        
+        offset += pageSize;
+        
+        // Stop if we've processed all phrases for this category
+        if (phrases.length < pageSize) {
+          hasMore = false;
+        }
       }
-      byCategory[phrase.category].push(phrase);
-    });
+    }
     
-    Object.keys(byCategory).forEach(category => {
-      console.log(`\n${category}: ${byCategory[category].length} phrases`);
-      byCategory[category].forEach(phrase => {
-        console.log(`  ID ${phrase.id}: "${phrase.phrase}" -> ${phrase.emojis}`);
-      });
-    });
+    // Show summary
+    const totalPhrases = categoryCounts.reduce((sum, row) => sum + row.count, 0);
+    console.log(`\nTotal phrases in database: ${totalPhrases}`);
     
   } catch (error) {
     console.error('Error:', error);
