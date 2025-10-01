@@ -122,6 +122,31 @@ npm run test:multi-session
 - `GET /api/categories` - Get available categories
 - `POST /api/session/reset` - Reset game session
 
+## Configuration
+
+The application uses a JSON configuration file at `server/config.json`. You can customize:
+
+- **Ollama Settings**: Change the model or base URL
+- **Server Port**: Change the backend server port
+- **Database Path**: Change the SQLite database location
+
+### Example Configuration
+
+```json
+{
+  "ollama": {
+    "baseUrl": "http://localhost:11434",
+    "model": "qwen3:1.7b"
+  },
+  "server": {
+    "port": 3001
+  },
+  "database": {
+    "path": "./server/phrases.db"
+  }
+}
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -130,6 +155,7 @@ npm run test:multi-session
    - Ensure Ollama is running: `ollama serve`
    - Verify the model is pulled: `ollama list`
    - Check if port 11434 is accessible
+   - Verify the model name in `server/config.json`
 
 2. **"No phrases available"**
    - Wait for background generation to complete
@@ -139,6 +165,10 @@ npm run test:multi-session
 3. **Database errors**
    - Delete `server/phrases.db` to reset the database
    - Restart the server
+
+4. **Configuration issues**
+   - Check `server/config.json` for syntax errors
+   - Delete the config file to regenerate defaults
 
 ### Testing Ollama Integration
 
@@ -157,6 +187,7 @@ node server/test-full-flow.js
 - **AI Integration**: Ollama for phrase and emoji generation
 - **Session Management**: Cookie-based session tracking
 - **Background Processing**: Automatic phrase population
+- **Configuration**: JSON-based config file for easy customization
 
 ## Contributing
 

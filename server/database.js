@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const config = require('./config');
 
 class Database {
   constructor() {
@@ -8,7 +9,7 @@ class Database {
 
   async init() {
     return new Promise((resolve, reject) => {
-      const dbPath = path.join(__dirname, 'phrases.db');
+      const dbPath = config.databasePath;
       this.db = new sqlite3.Database(dbPath, (err) => {
         if (err) {
           console.error('Error opening database:', err);

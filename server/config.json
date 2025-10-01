@@ -1,0 +1,12 @@
+{
+  "ollama": {
+    "baseUrl": "http://localhost:11434",
+    "model": "qwen3:1.7b"
+  },
+  "server": {
+    "port": 3001
+  },
+  "database": {
+    "path": "./server/phrases.db"
+  }
+}

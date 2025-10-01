@@ -4,13 +4,14 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const PhraseService = require('./phraseService');
 const SessionManager = require('./sessionManager');
+const config = require('./config');
 
 class Server {
   constructor() {
     this.app = express();
     this.phraseService = new PhraseService();
     this.sessionManager = new SessionManager();
-    this.port = process.env.PORT || 3001;
+    this.port = process.env.PORT || config.serverPort;
   }
 
   async start() {

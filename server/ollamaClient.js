@@ -1,7 +1,9 @@
+const config = require('./config');
+
 class OllamaClient {
-  constructor(baseUrl = 'http://localhost:11434') {
-    this.baseUrl = baseUrl;
-    this.model = 'qwen3:1.7b';
+  constructor() {
+    this.baseUrl = config.ollamaBaseUrl;
+    this.model = config.ollamaModel;
   }
 
   async generatePhrase(category) {
