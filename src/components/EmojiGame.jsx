@@ -63,7 +63,13 @@ const EmojiGame = () => {
               <div class="emoji-display">
                 <h3>What does this mean?</h3>
                 <div class="emojis">
-                  {gameState.isLoading ? 'Loading...' : gameState.currentEmojis}
+                  {gameState.isLoading ? (
+                    <div class="loading-animation">
+                      <div class="loading-dot"></div>
+                      <div class="loading-dot"></div>
+                      <div class="loading-dot"></div>
+                    </div>
+                  ) : gameState.currentEmojis}
                 </div>
               </div>
 

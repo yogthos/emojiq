@@ -34,8 +34,16 @@ class PhraseService {
       // Try to generate multiple phrases to increase chances of uniqueness
       const generateAttempts = 5;
       let generatedPhrases = [];
+      let duplicateCount = 0;
+      const maxDuplicatesBeforeStop = 3;
 
       for (let i = 0; i < generateAttempts; i++) {
+        // Stop if we're getting too many duplicates
+        if (duplicateCount >= maxDuplicatesBeforeStop) {
+          console.log(`Too many duplicates for category ${category}, stopping generation attempts`);
+          break;
+        }
+
         try {
           const newPhrase = await this.aiProvider.generatePhrase(category || 'movies');
           const insertedPhrase = await this.db.insertPhrase(
@@ -44,9 +52,11 @@ class PhraseService {
             newPhrase.category
           );
           generatedPhrases.push(insertedPhrase);
+          duplicateCount = 0; // Reset duplicate counter on success
         } catch (error) {
           if (error.message.includes('UNIQUE constraint failed')) {
             console.log(`Duplicate phrase detected during generation, skipping...`);
+            duplicateCount++;
             continue;
           } else {
             console.error('Error generating phrase:', error);
@@ -185,13 +195,23 @@ class PhraseService {
           
           console.log(`Generating ${needed} phrases for category: ${cat}`);
           
-          for (let i = 0; i < needed; i++) {
+          let successfulGenerations = 0;
+          let duplicateCount = 0;
+          const maxDuplicatesBeforeStop = 5; // Stop if we get too many duplicates in a row
+
+          for (let i = 0; i < needed && successfulGenerations < needed; i++) {
             // Check if we should stop before each phrase generation
             if (!this.backgroundGenerationRunning) {
               console.log('Background generation stopped');
               return;
             }
-            
+
+            // Stop if we're getting too many duplicates
+            if (duplicateCount >= maxDuplicatesBeforeStop) {
+              console.log(`Too many duplicates for category ${cat}, stopping generation for this category`);
+              break;
+            }
+
             try {
               const newPhrase = await this.aiProvider.generatePhrase(cat);
               await this.db.insertPhrase(
@@ -200,9 +220,12 @@ class PhraseService {
                 newPhrase.category
               );
               console.log(`Generated phrase: "${newPhrase.phrase}" for ${cat}`);
+              successfulGenerations++;
+              duplicateCount = 0; // Reset duplicate counter on success
             } catch (error) {
               if (error.message.includes('UNIQUE constraint failed')) {
                 console.log(`Duplicate phrase detected during background generation, skipping...`);
+                duplicateCount++;
               } else if (error.message.includes('Database is closed') || error.code === 'SQLITE_MISUSE') {
                 console.log('Database closed, stopping background generation');
                 return;
@@ -210,9 +233,13 @@ class PhraseService {
                 console.error('Error generating phrase in background:', error);
               }
             }
-            
+
             // Small delay to avoid overwhelming the LLM
             await new Promise(resolve => setTimeout(resolve, 500));
+          }
+
+          if (successfulGenerations < needed) {
+            console.log(`Generated ${successfulGenerations}/${needed} phrases for ${cat} (stopped due to duplicates)`);
           }
         }
       }
@@ -225,6 +252,11 @@ class PhraseService {
   }
 
   async ensurePhraseAvailability(category = null) {
+    // Don't start background generation if it's already running
+    if (this.backgroundGenerationRunning) {
+      return;
+    }
+
     const needsMore = await this.needsMorePhrases(category);
     if (needsMore) {
       // Start background generation but don't wait for it

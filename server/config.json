@@ -1,5 +1,5 @@
 {
-  "provider": "ollama",
+  "provider": "deepseek",
   "ollama": {
     "baseUrl": "http://localhost:11434",
     "model": "qwen3:32b"

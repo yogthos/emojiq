@@ -156,7 +156,7 @@ export const useGameState = () => {
 
   // Timer effect
   useEffect(() => {
-    if (!gameState.isPlaying || gameState.isGameOver) return;
+    if (!gameState.isPlaying || gameState.isGameOver || gameState.isLoading) return;
 
     const timer = setInterval(() => {
       setGameState(prev => {
@@ -177,7 +177,7 @@ export const useGameState = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState.isPlaying, gameState.isGameOver]);
+  }, [gameState.isPlaying, gameState.isGameOver, gameState.isLoading]);
 
   return {
     gameState,
