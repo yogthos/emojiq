@@ -5,6 +5,7 @@ class Config {
   constructor() {
     this.configPath = path.join(__dirname, 'config.json');
     this.defaultConfig = {
+      provider: 'ollama',
       ollama: {
         baseUrl: 'http://localhost:11434',
         model: 'qwen3:1.7b'
@@ -93,12 +94,24 @@ class Config {
   }
 
   // Convenience getters
+  get provider() {
+    return this.get('provider');
+  }
+
   get ollamaBaseUrl() {
     return this.get('ollama.baseUrl');
   }
 
   get ollamaModel() {
     return this.get('ollama.model');
+  }
+
+  get deepseekBaseUrl() {
+    return this.get('deepseek.baseUrl');
+  }
+
+  get deepseekModel() {
+    return this.get('deepseek.model');
   }
 
   get serverPort() {

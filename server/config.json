@@ -1,7 +1,12 @@
 {
+  "provider": "ollama",
   "ollama": {
     "baseUrl": "http://localhost:11434",
-    "model": "qwen3:1.7b"
+    "model": "qwen3:32b"
+  },
+  "deepseek": {
+    "baseUrl": "https://api.deepseek.com",
+    "model": "deepseek-chat"
   },
   "server": {
     "port": 3001

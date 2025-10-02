@@ -1,10 +1,10 @@
 const Database = require('./database');
-const OllamaClient = require('./ollamaClient');
+const AIProvider = require('./aiProvider');
 
 class PhraseService {
   constructor() {
     this.db = new Database();
-    this.ollama = new OllamaClient();
+    this.aiProvider = AIProvider.create();
     this.isInitialized = false;
     this.backgroundGenerationRunning = false;
     this.minPhraseThreshold = 20; // Minimum phrases per category to maintain
@@ -37,7 +37,7 @@ class PhraseService {
 
       for (let i = 0; i < generateAttempts; i++) {
         try {
-          const newPhrase = await this.ollama.generatePhrase(category || 'movies');
+          const newPhrase = await this.aiProvider.generatePhrase(category || 'movies');
           const insertedPhrase = await this.db.insertPhrase(
             newPhrase.phrase,
             newPhrase.emojis,
@@ -193,7 +193,7 @@ class PhraseService {
             }
             
             try {
-              const newPhrase = await this.ollama.generatePhrase(cat);
+              const newPhrase = await this.aiProvider.generatePhrase(cat);
               await this.db.insertPhrase(
                 newPhrase.phrase,
                 newPhrase.emojis,

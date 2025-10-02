@@ -12,6 +12,8 @@
     "lint": "eslint src",
     "test": "jest",
     "test:ollama": "node tests/server/test-ollama.js",
+    "test:deepseek": "node tests/server/test-deepseek.js",
+    "test:providers": "node tests/server/test-provider-compatibility.js",
     "test:server": "node tests/server/test-full-flow.js",
     "test:unique": "node tests/server/test-unique-phrases.js",
     "test:multi-session": "node tests/server/test-multi-session-unique.js",

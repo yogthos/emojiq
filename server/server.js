@@ -36,7 +36,6 @@ class Server {
     // Start server
     this.server = this.app.listen(this.port, () => {
       console.log(`Server running on http://localhost:${this.port}`);
-      console.log('Make sure Ollama is running on http://localhost:11434');
     });
 
     // Start session cleanup
