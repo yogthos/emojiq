@@ -8,25 +8,28 @@ flowchart TD
     B --> C[Request Phrase from Server]
     C --> D{Check SQLite Cache}
     D -->|Cache Hit| E[Filter Used Phrases]
-    D -->|Cache Miss| F[Call Ollama Qwen3:1.7b]
-    E --> G{Any Unused Phrases?}
-    G -->|Yes| H[Return Fresh Phrase+Emojis]
-    G -->|No| F
-    F --> I[Generate Phrase & Emojis]
-    I --> J[Store in SQLite Cache]
-    J --> H
-    H --> K[Track Phrase as Used]
-    K --> L[Scramble Words + Add Decoys]
-    L --> M[Display Emojis & Word Bank]
-    M --> N[User Selects Words]
-    N --> O{Check Answer}
-    O -->|Correct| P[Update Score & Add Time Bonus]
-    O -->|Incorrect| Q[Show Error & Reset Words]
-    P --> R{Time Remaining?}
-    Q --> R
-    R -->|Yes| C
-    R -->|No| S[Game Over]
-    S --> T[Show Final Score]
+    D -->|Cache Miss| F{Check Provider Config}
+    F -->|Ollama| G[Call Ollama Qwen3:32b]
+    F -->|DeepSeek| H[Call DeepSeek API]
+    E --> I{Any Unused Phrases?}
+    I -->|Yes| J[Return Fresh Phrase+Emojis]
+    I -->|No| F
+    G --> K[Generate Phrase & Emojis]
+    H --> K
+    K --> L[Store in SQLite Cache]
+    L --> J
+    J --> M[Track Phrase as Used]
+    M --> N[Scramble Words + Add Decoys]
+    N --> O[Display Emojis & Word Bank]
+    O --> P[User Selects Words]
+    P --> Q{Check Answer}
+    Q -->|Correct| R[Update Score & Add Time Bonus]
+    Q -->|Incorrect| S[Show Error & Reset Words]
+    R --> T{Time Remaining?}
+    S --> T
+    T -->|Yes| C
+    T -->|No| U[Game Over]
+    U --> V[Show Final Score]
 ```
 
 ## Code Structure
@@ -40,54 +43,61 @@ graph TB
         C --> E[Word Scrambler]
         F[Timer Logic] --> C
         G[Score Logic] --> C
+        H[Loading Animation] --> B
     end
 
     subgraph "Backend Server (Express)"
-        H[Express Server] --> I[Server Class]
-        I --> J[Phrase Service]
-        I --> K[Session Manager]
-        J --> L[Ollama Client]
-        J --> M[SQLite Database]
-        K --> N[Cookie-based Session Tracking]
-        O[Background Generation] --> J
+        I[Express Server] --> J[Server Class]
+        J --> K[Phrase Service]
+        J --> L[Session Manager]
+        K --> M[AI Provider Factory]
+        M --> N[Ollama Client]
+        M --> O[DeepSeek Client]
+        K --> P[SQLite Database]
+        L --> Q[Cookie-based Session Tracking]
+        R[Background Generation] --> K
+        S[Configuration Manager] --> M
     end
 
     subgraph "Database Schema"
-        M --> P[phrases table]
-        P --> Q[id: INTEGER PRIMARY KEY]
-        P --> R[phrase: TEXT]
-        P --> S[emojis: TEXT]
-        P --> T[category: TEXT]
-        P --> U[difficulty: INTEGER]
-        P --> V[correct_guesses: INTEGER]
-        P --> W[total_attempts: INTEGER]
-        P --> X[created_at: DATETIME]
-        P --> Y[UNIQUE phrase, category]
+        P --> T[phrases table]
+        T --> U[id: INTEGER PRIMARY KEY]
+        T --> V[phrase: TEXT]
+        T --> W[emojis: TEXT]
+        T --> X[category: TEXT]
+        T --> Y[difficulty: INTEGER]
+        T --> Z[correct_guesses: INTEGER]
+        T --> AA[total_attempts: INTEGER]
+        T --> AB[created_at: DATETIME]
+        T --> AC[UNIQUE phrase, category]
     end
 
     D --> I
-    J --> K
+    K --> L
 ```
 
 ## Component Responsibilities
 
 ### Frontend Components (Preact + Vite)
 - **App**: Main application router and entry point
-- **EmojiGame**: Main game component with UI layout
-- **useGameState Hook**: Central state management for game logic
+- **EmojiGame**: Main game component with UI layout and loading animation
+- **useGameState Hook**: Central state management for game logic with timer pausing during loading
 - **API Client**: HTTP communication with backend server
-- **Word Scrambler**: Scrambles phrases and validates answers
-- **Timer Logic**: Countdown timer with time extension on correct answers
+- **Word Scrambler**: Scrambles phrases and validates answers with strict validation rules
+- **Timer Logic**: Countdown timer with time extension on correct answers, pauses during phrase generation
 - **Score Logic**: Score calculation with time and word bonuses
+- **Loading Animation**: Animated loading indicator during phrase generation
 
 ### Backend Components (Node.js + Express)
 - **Server Class**: Main server setup with graceful shutdown
-- **Phrase Service**: Core business logic for phrase management
+- **Phrase Service**: Core business logic for phrase management with duplicate protection
 - **Session Manager**: Cookie-based session tracking for phrase uniqueness
-- **Ollama Client**: Integration with local Ollama server using Qwen3:1.7b
+- **AI Provider Factory**: Creates appropriate AI provider based on configuration
+- **Ollama Client**: Integration with local Ollama server using Qwen3:32b
+- **DeepSeek Client**: Integration with DeepSeek API using deepseek-chat model
 - **SQLite Database**: Persistent phrase caching with automatic cleanup
-- **Background Generation**: Automatic phrase population when cache is low
-- **Database**: SQLite wrapper with phrase operations
+- **Background Generation**: Automatic phrase population when cache is low with duplicate limits
+- **Configuration Manager**: Loads and manages provider configuration from config.json
 
 ### Database Schema
 - **phrases table**: Cached phrases with metadata
@@ -135,10 +145,12 @@ graph TB
 
 ### Backend Tests
 - **Integration Tests**: Full server flow testing
-- **Ollama Tests**: AI integration testing
+- **Ollama Tests**: AI integration testing with Qwen3:32b
+- **DeepSeek Tests**: DeepSeek API integration testing
+- **Provider Compatibility Tests**: Ensures both providers have compatible APIs
 - **Session Tests**: Multi-session uniqueness testing
 - **Performance Tests**: Timer extension and phrase availability testing
-- **Generation Tests**: Phrase generation and caching tests
+- **Generation Tests**: Phrase generation and caching tests with duplicate protection
 
 ## Development Tools
 
@@ -173,10 +185,14 @@ wordgames/
 │   └── manifest.json            # PWA manifest
 ├── server/                      # Backend server code
 │   ├── server.js                # Main server class
-│   ├── phraseService.js         # Phrase generation service
+│   ├── phraseService.js         # Phrase generation service with duplicate protection
 │   ├── sessionManager.js        # Session management
-│   ├── ollamaClient.js          # Ollama AI integration
+│   ├── aiProvider.js            # AI provider factory
+│   ├── ollamaClient.js          # Ollama AI integration with Qwen3:32b
+│   ├── deepseekClient.js        # DeepSeek API integration
 │   ├── database.js              # SQLite database wrapper
+│   ├── config.js                # Configuration management
+│   ├── config.json              # Provider configuration
 │   ├── cleanup-database.js      # Database maintenance
 │   ├── check-phrases.js         # Phrase validation
 │   └── phrases.db               # SQLite database file
@@ -184,6 +200,8 @@ wordgames/
 │   ├── server/                  # Backend integration tests
 │   │   ├── test-full-flow.js    # Complete flow test
 │   │   ├── test-ollama.js       # Ollama integration test
+│   │   ├── test-deepseek.js     # DeepSeek API integration test
+│   │   ├── test-provider-compatibility.js # Provider compatibility test
 │   │   ├── test-unique-phrases.js # Phrase uniqueness test
 │   │   ├── test-multi-session-unique.js # Multi-session test
 │   │   ├── test-phrase-generation.js # Generation tests
