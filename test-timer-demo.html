@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Extension Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .demo-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .game-state {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .score {
+            font-size: 18px;
+            color: #27ae60;
+        }
+        .message {
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .phrase-display {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🎮 Timer Extension Demo</h1>
+        <p>This demo shows how the timer extends when you make successful guesses in the Emoji Word Game.</p>
+
+        <div class="game-state">
+            <div class="timer">Time: <span id="timeLeft">60</span>s</div>
+            <div class="score">Score: <span id="score">0</span></div>
+            <div id="message" class="message" style="display: none;"></div>
+        </div>
+
+        <div class="phrase-display">
+            <strong>Current Phrase:</strong> <span id="currentPhrase">The hero saves the day</span>
+            <br>
+            <strong>Emojis:</strong> <span id="currentEmojis">🦸‍♂️💾📅</span>
+        </div>
+
+        <div class="controls">
+            <button onclick="simulateCorrectGuess()">✅ Simulate Correct Guess</button>
+            <button onclick="simulateIncorrectGuess()">❌ Simulate Incorrect Guess</button>
+            <button onclick="decreaseTime()">⏰ Decrease Time by 5s</button>
+            <button onclick="resetGame()">🔄 Reset Game</button>
+        </div>
+
+        <div class="log" id="log">
+            <div>Game started with 60 seconds on the timer.</div>
+            <div>Make a correct guess to see the timer extension in action!</div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            timeLeft: 60,
+            score: 0,
+            currentSentence: 'The hero saves the day',
+            currentEmojis: '🦸‍♂️💾📅',
+            isPlaying: true
+        };
+
+        function updateDisplay() {
+            document.getElementById('timeLeft').textContent = gameState.timeLeft;
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('currentPhrase').textContent = gameState.currentSentence;
+            document.getElementById('currentEmojis').textContent = gameState.currentEmojis;
+        }
+
+        function logMessage(message) {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function simulateCorrectGuess() {
+            if (!gameState.isPlaying) return;
+
+            // Simulate the timer extension logic from useGameState.js
+            const timeBonus = Math.floor(gameState.timeLeft / 5);
+            const wordBonus = gameState.currentSentence.split(' ').length * 10;
+            const roundScore = 50 + timeBonus + wordBonus;
+
+            // Add time extension for successful guess (5-10 seconds based on phrase length)
+            const timeExtension = Math.min(10, Math.max(5, gameState.currentSentence.split(' ').length * 2));
+
+            const oldTime = gameState.timeLeft;
+            const oldScore = gameState.score;
+
+            gameState.score += roundScore;
+            gameState.timeLeft = Math.min(120, gameState.timeLeft + timeExtension); // Cap at 2 minutes
+
+            // Show success message
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = `Correct! +${roundScore} points (+${timeExtension}s time bonus)`;
+            messageEl.style.display = 'block';
+            messageEl.style.background = '#d4edda';
+            messageEl.style.borderLeftColor = '#28a745';
+
+            logMessage(`✅ CORRECT GUESS!`);
+            logMessage(`   Time bonus: ${timeBonus} points`);
+            logMessage(`   Word bonus: ${wordBonus} points (${gameState.currentSentence.split(' ').length} words)`);
+            logMessage(`   Round score: ${roundScore} points`);
+            logMessage(`   Time extension: +${timeExtension} seconds`);
+            logMessage(`   Time: ${oldTime}s → ${gameState.timeLeft}s`);
+            logMessage(`   Score: ${oldScore} → ${gameState.score}`);
+
+            updateDisplay();
+
+            // Hide message after 3 seconds
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function simulateIncorrectGuess() {
+            if (!gameState.isPlaying) return;
+
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = 'Incorrect! Try again';
+            messageEl.style.display = 'block';
+            messageEl.style.background = '#f8d7da';
+            messageEl.style.borderLeftColor = '#dc3545';
+
+            logMessage(`❌ INCORRECT GUESS - No time bonus`);
+            logMessage(`   Time remains: ${gameState.timeLeft}s`);
+
+            updateDisplay();
+
+            // Hide message after 2 seconds
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 2000);
+        }
+
+        function decreaseTime() {
+            if (!gameState.isPlaying) return;
+
+            gameState.timeLeft = Math.max(0, gameState.timeLeft - 5);
+            logMessage(`⏰ Time decreased by 5s → ${gameState.timeLeft}s`);
+
+            if (gameState.timeLeft <= 0) {
+                gameState.isPlaying = false;
+                logMessage(`⏰ GAME OVER - Time's up!`);
+            }
+
+            updateDisplay();
+        }
+
+        function resetGame() {
+            gameState = {
+                timeLeft: 60,
+                score: 0,
+                currentSentence: 'The hero saves the day',
+                currentEmojis: '🦸‍♂️💾📅',
+                isPlaying: true
+            };
+
+            document.getElementById('message').style.display = 'none';
+            document.getElementById('log').innerHTML = '<div>Game reset! Timer extension demo ready.</div>';
+
+            updateDisplay();
+            logMessage(`🔄 Game reset - Timer: 60s, Score: 0`);
+        }
+
+        // Initialize display
+        updateDisplay();
+        logMessage(`🎮 Timer Extension Demo Started`);
+        logMessage(`   Current phrase: "${gameState.currentSentence}" (${gameState.currentSentence.split(' ').length} words)`);
+        logMessage(`   Time extension formula: min(10, max(5, word_count * 2)) seconds`);
+        logMessage(`   This phrase will give: +${Math.min(10, Math.max(5, gameState.currentSentence.split(' ').length * 2))}s time bonus`);
+    </script>
+</body>
+</html>
